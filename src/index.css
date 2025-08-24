@@ -5,7 +5,12 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply m-0 bg-gray-50 text-gray-900;
+  }
+  
+  html, body, #root {
+    height: 100vh;
+    width: 100vw;
     margin: 0;
     padding: 0;
   }
@@ -14,19 +19,42 @@
     width: 100vw;
     overflow: hidden;
   }
+  
+  /* Dark mode improvements */
+  .dark {
+    color-scheme: dark;
+  }
+  
+  .dark body {
+    @apply bg-gray-900 text-gray-100;
+  }
+  
+  .dark input {
+    @apply bg-gray-800 border-gray-700 text-gray-100;
+  }
+  
+  .dark input:focus {
+    @apply border-blue-500 ring-blue-500;
+  }
+  
+  .dark button {
+    @apply text-gray-100;
+  }
+  
+  .dark .bg-card {
+    @apply bg-gray-800 border-gray-700;
+  }
+  
+  .dark .bg-muted {
+    @apply bg-gray-800;
+  }
+  
+  .dark .text-muted-foreground {
+    @apply text-gray-400;
+  }
 }
 
-body {
-  @apply m-0 bg-black text-green-400;
-}
 
-html, body, #root {
-  height: 100vh;
-  width: 100vw;
-  margin: 0;
-  padding: 0;
-  overflow: hidden;
-}
 
 @keyframes slide {
   from {

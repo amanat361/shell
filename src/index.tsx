@@ -1,66 +1,56 @@
 import { serve } from "bun";
-import { $ } from "bun";
 import index from "./index.html";
+
+const OPENCODE_SERVER_URL = "http://127.0.0.1:4096";
+
+// Proxy function to forward requests to OpenCode server
+async function proxyToOpenCode(req: Request, path: string) {
+  const url = new URL(req.url);
+  const targetUrl = `${OPENCODE_SERVER_URL}${path}${url.search}`;
+  
+  try {
+    const response = await fetch(targetUrl, {
+      method: req.method,
+      headers: req.headers,
+      body: req.body,
+    });
+    
+    return response;
+  } catch (error) {
+    console.error("OpenCode proxy error:", error);
+    return Response.json({ 
+      error: "OpenCode server not available. Please run 'opencode serve' first." 
+    }, { status: 503 });
+  }
+}
 
 const server = serve({
   routes: {
     // Serve index.html for all unmatched routes.
     "/*": index,
 
-    "/api/hello": {
-      async GET(req) {
-        return Response.json({
-          message: "Hello, world!",
-          method: "GET",
-        });
-      },
-      async PUT(req) {
-        return Response.json({
-          message: "Hello, world!",
-          method: "PUT",
-        });
-      },
+    // Proxy all /opencode/* requests to OpenCode server
+    "/opencode/*": async (req) => {
+      const path = new URL(req.url).pathname.replace("/opencode", "");
+      return proxyToOpenCode(req, path);
     },
 
-    "/api/hello/:name": async req => {
-      const name = req.params.name;
-      return Response.json({
-        message: `Hello, ${name}!`,
-      });
-    },
-
-    "/api/execute": {
-      async POST(req) {
+    // Health check for OpenCode server
+    "/api/health": {
+      async GET() {
         try {
-          const { command } = await req.json();
-          
-          try {
-            const result = await $`zsh -c "${command}"`;
-            return Response.json({
-              stdout: result.stdout.toString(),
-              stderr: result.stderr.toString(),
-              exitCode: result.exitCode
-            });
-          } catch (error: any) {
-            return Response.json({
-              error: error.stderr?.toString() || error.message,
-              exitCode: error.exitCode || 1
-            });
+          const response = await fetch(`${OPENCODE_SERVER_URL}/app`);
+          if (response.ok) {
+            return Response.json({ status: "connected", opencode: true });
           }
+          return Response.json({ status: "disconnected", opencode: false }, { status: 503 });
         } catch (error) {
-          return Response.json({ error: "Invalid JSON" }, { status: 400 });
+          return Response.json({ 
+            status: "disconnected", 
+            opencode: false, 
+            message: "OpenCode server not running. Run 'opencode serve' to start it." 
+          }, { status: 503 });
         }
-      },
-    },
-
-    "/api/cancel": {
-      async POST(req) {
-        // For now, we'll return a cancellation message
-        // In a real implementation, you'd track running processes
-        return Response.json({ 
-          message: "^C", 
-          cancelled: true 
-        });
       },
     },
   },
@@ -74,4 +64,6 @@ const server = serve({
   },
 });
 
-console.log(`🚀 Server running at ${server.url}`);
+console.log(`🚀 OpenCode Web UI running at ${server.url}`);
+console.log(`📡 Expecting OpenCode server at ${OPENCODE_SERVER_URL}`);
+console.log(`💡 Run 'opencode serve --port 4096' to start OpenCode server`);
